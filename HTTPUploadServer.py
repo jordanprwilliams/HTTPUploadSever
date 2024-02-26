@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
+
 """
 Simple HTTP Server With Upload
 
 Description:
-This module extends http.server by providing straightforward implementations
-for standard GET and HEAD requests. It adds functionality to support file uploads
-via POST requests, making it suitable for basic file management tasks through a web interface.
+This module extends http.server by adding straightforward implementations for standard GET and HEAD requests. It enhances functionality to support file uploads via POST requests, enabling basic file management tasks through a web interface.
 
 Features:
 - Serve files and directories over HTTP.
-- Upload files to the server using a simple web form.
-- Navigate through directories and download files via a web browser.
-- Basic security measures to prevent unauthorized access should be implemented by the user,
-  as this server is intended for educational or development purposes.
+- Enable file uploads to the server using a simple web form.
+- Allow navigation through directories and downloading of files via a web browser.
+- Encourage users to implement basic security measures to prevent unauthorized access, as this server is primarily intended for educational or development purposes.
 
-Usage:
+Enhanced Usage:
 
-1. Run the server: `python3 HTTPUploadServer.py [port]`
-   - If no port is specified, the server will default to port 8080.
-2. Access the server in a web browser: `http://localhost:[port]/`
-   - Replace `[port]` with the port number you specified when starting the server.
-3. Use the web interface to upload, download, or navigate files and directories.
+1. Run the server with or without specifying a port:
+   `python3 HTTPUploadServer.py [port]`
+   - If no port is specified, the server defaults to port 8080.
+   - You can choose any available port by replacing `[port]` with your desired port number.
+
+2. Access the server in a web browser:
+   `http://localhost:[port]/`
+   - Replace `[port]` with the actual port number you specified when starting the server.
+
+3. Interact with the web interface to upload, download, or navigate files and directories.
+
+Options:
+- `-p` or `--port`: Specify the port number for the server to listen on. Example usage: `python3 HTTPUploadServer.py -p 8081`
+- `-h` or `--help`: Display help information and usage instructions.
 """
 import os
 import posixpath
@@ -30,10 +37,20 @@ import cgi
 import shutil
 import mimetypes
 import re
+import sys
 import html  # Import html for html.escape()
+import argparse
 from io import BytesIO
+from http.server import HTTPServer
 
-__version__ = "0.1"
+# Initialize the argument parser
+parser = argparse.ArgumentParser(description='Simple HTTP Server With Upload.')
+parser.add_argument('-p', '--port', type=int, default=8000, help='Specifies the port number the server listens on. Default is 8000.')
+args = parser.parse_args()
+# Use the port argument value
+port = args.port
+
+__version__ = "0.2"
 __all__ = ["SimpleHTTPRequestHandler"]
 
 class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -149,20 +166,28 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         # Calculate parent directory (going back one level)
         parent_directory = '/' if self.path == '/' else '/'.join(self.path.rstrip('/').split('/')[:-1]) + '/'
 
-
         f.write(b'<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
-        f.write(b"<html>\n<title>Directory listing for %s</title>\n" % displaypath.encode('utf-8'))
-        f.write(b"<body>\n<h2>Directory listing for %s</h2>\n" % displaypath.encode('utf-8'))
+        f.write(b"<html>\n<head><title>HTTP Upload Server</title></head>\n")
+        f.write(b"<body>\n<h1>HTTP Upload Server</h1>\n")
+        f.write(b"<p>Welcome to the HTTP Upload Server. Use this interface to upload, download, and navigate files.</p>\n")
         f.write(b"<hr>\n")
-        f.write(b'<form ENCTYPE="multipart/form-data" method="post">')
-        f.write(b'<input name="file" type="file"/>')
-        f.write(b'<input type="submit" value="upload"/></form>\n')
-        f.write(b"<hr>\n<ul>\n")
-        
-        # Add a Back link
-        if parent_directory:
-            f.write(b'<a href="%s">Back</a><br/>\n' % parent_directory.encode('utf-8'))
-
+        f.write(b'<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
+        f.write(b"<body>\n<h2>Upload to %s</h2>\n" % displaypath.encode('utf-8'))
+        f.write(b"<hr>\n")
+        # Instructions for uploading files with improved formatting
+        f.write(b"<div style='margin-top: 20px; margin-bottom: 20px;'>\n")
+        f.write(b"<p>To upload a file, choose a file using the 'Browse' button, then click 'Upload' to transfer your file to the server:</p>\n")
+        f.write(b'<form ENCTYPE="multipart/form-data" method="post" style="margin-bottom: 20px;">\n')
+        f.write(b'<input name="file" type="file" style="margin-bottom: 10px;"/> ')
+        f.write(b'<input type="submit" value="Upload" style="margin-left: 10px;"/></form>\n')
+        f.write(b"</div><hr>\n")
+        # Line indicating files accessible for download
+        f.write(b"<body>\n<h2>Download From %s</h2>\n" % displaypath.encode('utf-8'))
+        f.write(b"<p>Below is a list of files accessible for download:</p>\n<ul>\n")
+        # Condition to show "Back" link only if not in the root directory
+        if self.path != "/":
+            f.write(b'<a href="%s" style="margin-bottom:20px; display:inline-block;">Back</a><br/>\n' % parent_directory.encode('utf-8'))
+        #Lists file in Directory
         for name in list_dir:
             fullname = os.path.join(path, name)
             displayname = linkname = name
@@ -176,6 +201,8 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             f.write(b'<li><a href="%s">%s</a></li>\n' % (urllib.parse.quote(linkname).encode('utf-8'), html.escape(displayname).encode('utf-8')))
 
         f.write(b"</ul>\n<hr>\n</body>\n</html>\n")
+        f.write(b"<small>Created by Jordan Williams &copy; 2024</small>\n")  # Custom text addition
+        f.write(b"</body>\n</html>\n")
         length = f.tell()
         f.seek(0)
         self.send_response(200)
@@ -220,11 +247,31 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         # Add more mappings if necessary
     })
 
-def run(server_class=http.server.HTTPServer, handler_class=SimpleHTTPRequestHandler, port=8000):
+# Modify the run function to accept a port argument
+def run(server_class=http.server.HTTPServer, handler_class=SimpleHTTPRequestHandler, port=8080):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    print("Starting httpd on port", port)
+    print(f"Starting http upload server on port {port}...")
     httpd.serve_forever()
 
 if __name__ == '__main__':
-    run()
+	    port = 8000  # Default port
+"""
+if len(sys.argv) > 1:
+    try:
+        port = int(sys.argv[1])  # Convert the first command-line argument to an integer for the port
+    except ValueError:
+        print("Warning: Port argument must be an integer. Using default port 8000.")
+    
+    run(port=port)
+"""
+if __name__ == '__main__':
+    # Argument parsing
+    parser = argparse.ArgumentParser(description='Simple HTTP Server With Upload.')
+    parser.add_argument('-p', '--port', type=int, default=8080, help='Specifies the port number the server listens on. Default is 8080.')
+    args = parser.parse_args()
+
+    # Use the specified port or the default
+    port = args.port
+
+    run(port=port)
