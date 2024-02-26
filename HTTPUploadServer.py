@@ -1,12 +1,27 @@
 #!/usr/bin/env python3
-
 """
-Simple HTTP Server With Upload.
-This module builds on http.server by implementing the standard GET
-and HEAD requests in a straightforward manner. Additionally, it supports
-file uploads via POST requests.
-"""
+Simple HTTP Server With Upload
 
+Description:
+This module extends http.server by providing straightforward implementations
+for standard GET and HEAD requests. It adds functionality to support file uploads
+via POST requests, making it suitable for basic file management tasks through a web interface.
+
+Features:
+- Serve files and directories over HTTP.
+- Upload files to the server using a simple web form.
+- Navigate through directories and download files via a web browser.
+- Basic security measures to prevent unauthorized access should be implemented by the user,
+  as this server is intended for educational or development purposes.
+
+Usage:
+
+1. Run the server: `python3 HTTPUploadServer.py [port]`
+   - If no port is specified, the server will default to port 8080.
+2. Access the server in a web browser: `http://localhost:[port]/`
+   - Replace `[port]` with the port number you specified when starting the server.
+3. Use the web interface to upload, download, or navigate files and directories.
+"""
 import os
 import posixpath
 import http.server
