@@ -1,32 +1,24 @@
 #!/usr/bin/env python3
 """
-Simple HTTP Server With Upload made by Jordan Williams
+Simple HTTP Server with Upload
+This Python-based web server allows you to easily upload, download, and manage files through a web browser or command-line tools. It is designed to be spun up and taken down quickly for file transfer.
 
-Description:
-This module extends http.server by adding straightforward implementations for standard GET and HEAD requests. It enhances functionality to support file uploads via POST requests, enabling basic file management tasks through a web interface.
+**Important:** 
+File transfers are **not secure** and could be intercepted. Consider using this server only for development or controlled environments.
 
-Features:
-- Serve files and directories over HTTP.
-- Enable file uploads to the server using a simple web form.
-- Allow navigation through directories and downloading of files via a web browser.
-- Encourage users to implement basic security measures to prevent unauthorized access, as this server is primarily intended for educational or development purposes.
+**Features:**
+* Serve files and directories over HTTP.
+* Enable file uploads to a specified directory (`-d` option) using a simple web form.
+* Allow navigation through directories and downloading of files via a web browser.
+* Provide basic directory listings.
 
-Enhanced Usage:
-
-1. Run the server with or without specifying a port:
-   `python3 HTTPUploadServer.py [port]`
-   - If no port is specified, the server defaults to port 8080.
-   - You can choose any available port by replacing `[port]` with your desired port number.
-
-2. Access the server in a web browser:
-   `http://localhost:[port]/`
-   - Replace `[port]` with the actual port number you specified when starting the server.
-
-3. Interact with the web interface to upload, download, or navigate files and directories.
+**Usage:**
+```python3 HTTPUploadServer.py [options]```
 
 Options:
-- `-p` or `--port`: Specify the port number for the server to listen on. Example usage: `python3 HTTPUploadServer.py -p 8081`
-- `-h` or `--help`: Display help information and usage instructions.
+* `-p PORT`: Specify the port number for the server to listen on. (Default: 8000)
+* `-d DIRECTORY`:  Specify the directory to serve files from and upload to. (Default: current working directory)
+* `-h`, `--help`: Display help information and usage instructions.
 """
 import os
 import posixpath
