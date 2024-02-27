@@ -45,11 +45,12 @@ from http.server import HTTPServer
 # Initialize the argument parser
 parser = argparse.ArgumentParser(description='Simple HTTP Server With Upload.')
 parser.add_argument('-p', '--port', type=int, default=8000, help='Specifies the port number the server listens on. Default is 8000.')
+parser.add_argument('-d', '--directory', help='Specify the directory to serve files from', default=os.getcwd())
 args = parser.parse_args()
 # Use the port argument value
 port = args.port
 
-__version__ = "0.2"
+__version__ = "1.0"
 __all__ = ["SimpleHTTPRequestHandler"]
 
 class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -121,35 +122,33 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         return (False, "Something went wrong with the upload")
 
     def send_head(self):
-        """Common code for GET and HEAD commands."""
+        """Common code for GET and HEAD commands. 
+        Change the logic to use the directory specified in 
+        args.directory when provided.
+        """
         path = self.translate_path(self.path)
         f = None
         if os.path.isdir(path):
-            if not self.path.endswith('/'):
-                self.send_response(301)
-                self.send_header("Location", self.path + "/")
-                self.end_headers()
-                return None
             for index in "index.html", "index.htm":
                 index = os.path.join(path, index)
                 if os.path.exists(index):
                     path = index
                     break
-            else:
-                return self.list_directory(path)
-        ctype = self.guess_type(path)
-        try:
-            f = open(path, 'rb')
-        except IOError:
-            self.send_error(404, "File not found")
-            return None
-        self.send_response(200)
-        self.send_header("Content-type", ctype)
-        fs = os.fstat(f.fileno())
-        self.send_header("Content-Length", str(fs.st_size))
-        self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
-        self.end_headers()
-        return f
+                else:
+                    return self.list_directory(path)
+            ctype = self.guess_type(path)
+            try:
+                f = open(path, 'rb')
+            except IOError:
+                self.send_error(404, "File not found")
+                return None
+            self.send_response(200)
+            self.send_header("Content-type", ctype)
+            fs = os.fstat(f.fileno())
+            self.send_header("Content-Length", str(fs.st_size))
+            self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
+            self.end_headers()
+            return f
 
     def list_directory(self, path):
         """Helper to produce a directory listing (absent index.html)."""
@@ -209,17 +208,21 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(length))
         self.end_headers()
         return f
-
-
+        
     def translate_path(self, path):
-        """Translate a /-separated PATH to the local filename syntax."""
-        path = path.split('?',1)[0]
-        path = path.split('#',1)[0]
+        """Translate a /-separated PATH to the local filename syntax. 
+        Handles translating the path based on the root directory specified in args.directory.
+        """
+        # Remove query string
+        path = path.split('?', 1)[0]
+        # Unquote the path
         path = urllib.parse.unquote(path)
+        # Normalize the path
         path = posixpath.normpath(path)
         words = path.split('/')
         words = filter(None, words)
-        path = os.getcwd()
+        # Set the base path to be the root directory (args.directory)
+        path = args.directory
         for word in words:
             path = os.path.join(path, word)
         return path
@@ -247,8 +250,10 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     })
 
 # Modify the run function to accept a port argument
-def run(server_class=http.server.HTTPServer, handler_class=SimpleHTTPRequestHandler, port=8080):
+def run(server_class=http.server.HTTPServer, handler_class=SimpleHTTPRequestHandler, port=8000, directory=None):
     server_address = ('', port)
+    # Assign root directory from the args
+    handler_class.directory = directory or os.getcwd()
     httpd = server_class(server_address, handler_class)
     print(f"Starting http upload server on port {port}...")
     httpd.serve_forever()
@@ -265,12 +270,17 @@ if len(sys.argv) > 1:
     run(port=port)
 """
 if __name__ == '__main__':
-    # Argument parsing
-    parser = argparse.ArgumentParser(description='Simple HTTP Server With Upload.')
-    parser.add_argument('-p', '--port', type=int, default=8080, help='Specifies the port number the server listens on. Default is 8080.')
-    args = parser.parse_args()
+  # Argument parsing
+  parser = argparse.ArgumentParser(description='Simple HTTP Server With Upload.')
+  parser.add_argument('-p', '--port', type=int, default=8000, help='Specifies the port number the server listens on. Default is 8000.')
+  parser.add_argument('-d', '--directory', type=str, default=os.getcwd(),
+                      help='Directory to serve files from and upload to. Defaults to the current working directory.')
+  args = parser.parse_args()
 
-    # Use the specified port or the default
-    port = args.port
+  # Use the specified port or the default
+  port = args.port
 
-    run(port=port)
+  # Use the specified directory or the default
+  directory = args.directory
+
+  run(port=args.port, directory=args.directory)
