@@ -1,58 +1,41 @@
 # HTTPUploadServer
+**A Simple and User-Friendly File Management Tool**
+
+This Python-based web server allows you to easily upload, download, and manage files through a web browser or command-line tools.
+
+**Features:**
+* **Secure File Uploads:** Upload files directly from your browser or using tools like `curl`.
+* **Directory Browsing:** Navigate through your file system and download files with ease.
+* **Command-Line Friendly:** Supports file management using `curl` and `wget`.
+
+**Prerequisites:**
+* Python 3 installed on your system.
+
+**Installation:**
+1. Clone the repository:
+Use code with caution.
+```git clone https://github.com/jordanprwilliams/HTTPUploadServer.git```
+
+2. Navigate to the project directory:
+
+```cd HTTPUploadServer```
+
+**Running the Server:**
+1. Start the server on the default port (8080):
+```python3 HTTPUploadServer.py```
 
 
-
-A simple, lightweight HTTP server for file uploads and directory listing, designed for quick file management and sharing over networks. Built with Python, it allows users to easily upload, download, and navigate through files in any browser or via command line using tools like `curl` and `wget`.
-
-
-
-## Features
+2. To specify a different port, use the `-p` option:
+```python3 HTTPUploadServer.py -p 80```
 
 
+**Caution:**
+Running the server makes all files in the current directory and subdirectories accessible through the web server. Use caution when running on public networks.
 
-- **File Upload**: Securely upload files through your browser or via `curl`.
+**License:**
+This software is distributed under the terms of the GNU General Public License v3 (GPLv3), available in the `LICENSE.md` file and at [https://www.gnu.org/licenses/gpl-3.0.html](https://www.gnu.org/licenses/gpl-3.0.html).
 
-- **Directory Browsing**: Navigate through directories and download files with ease.
+**Additional Notes:**
 
-- **Command Line Friendly**: Supports file downloading and uploading using command line tools.
-
-
-
-## Getting Started
-
-
-
-### Prerequisites
-
-
-
-Ensure you have Python installed on your system. This server was developed with Python 3 in mind.
-
-
-
-### Installation
-
-
-
-Clone the repository to your local machine:
-
-git clone https://github.com/jordanprwilliams/HTTPUploadSever.git
-
-
-Navigate into the project directory:
-
-
-### Running the Server
-
-Start the server w
-python3 HTTPUploadServer
-
-This will start on default port of 8080
-
-to specify your own port you can use the -p option
-
-python3 HTTPUploadServer.py -p 80
-
-### Warning
-
-The web server will mabe all files in the directory your running from and sub directories accessible from the now open port via the web server
+* Consider adding a license section specifying how users can distribute and modify the code.
+* You can include a screenshot demonstrating the server's interface to enhance the README.
