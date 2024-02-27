@@ -17,7 +17,6 @@ Use code with caution.
 ```git clone https://github.com/jordanprwilliams/HTTPUploadServer.git```
 
 2. Navigate to the project directory:
-
 ```cd HTTPUploadServer```
 
 **Running the Server:**
