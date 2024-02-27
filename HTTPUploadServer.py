@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-
 """
-Simple HTTP Server With Upload
+Simple HTTP Server With Upload made by Jordan Williams
 
 Description:
 This module extends http.server by adding straightforward implementations for standard GET and HEAD requests. It enhances functionality to support file uploads via POST requests, enabling basic file management tasks through a web interface.
@@ -255,7 +254,7 @@ def run(server_class=http.server.HTTPServer, handler_class=SimpleHTTPRequestHand
     httpd.serve_forever()
 
 if __name__ == '__main__':
-	    port = 8000  # Default port
+	    port = 8080  # Default port
 """
 if len(sys.argv) > 1:
     try:
