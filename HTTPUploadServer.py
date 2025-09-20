@@ -96,51 +96,70 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         f.close()
 
     def deal_post_data(self):
-        """Process the uploaded file."""
-        ctype, pdict = cgi.parse_header(self.headers['content-type'])
-        pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
-        content_length = int(self.headers['Content-Length'])
-        pdict['CONTENT-LENGTH'] = content_length
-        if ctype == 'multipart/form-data':
-            form = cgi.FieldStorage(fp=self.rfile, headers=self.headers, environ={'REQUEST_METHOD':'POST'}, keep_blank_values=1)
-            fileitem = form['file']
-            if fileitem.filename:
-                fn = os.path.basename(fileitem.filename)
-                open(fn, 'wb').write(fileitem.file.read())
-                message = 'The file "' + fn + '" was uploaded successfully'
-            else:
-                message = 'No file was uploaded'
-            return (True, message)
-        return (False, "Something went wrong with the upload")
+    """Process file upload to the served directory."""
+    ctype, pdict = cgi.parse_header(self.headers.get('content-type', ''))
+    if ctype != 'multipart/form-data':
+        return (False, "Invalid content-type (expected multipart/form-data)")
 
-    def send_head(self):
-        """Common code for GET and HEAD commands. 
-        Change the logic to use the directory specified in 
-        args.directory when provided.
-        """
-        path = self.translate_path(self.path)
-        f = None
-        if os.path.isdir(path):
-            for index in "index.html", "index.htm":
-                index = os.path.join(path, index)
-                if os.path.exists(index):
-                    path = index
-                    break
-                else:
-                    return self.list_directory(path)
-            ctype = self.guess_type(path)
-            try:
-                f = open(path, 'rb')
-            except IOError:
-                self.send_error(404, "File not found")
-                return None
-            self.send_response(200)
-            self.send_header("Content-type", ctype)
-            fs = os.fstat(f.fileno())
-            self.send_header("Content-Length", str(fs.st_size))
-            self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
-            self.end_headers()
-            return f
+    boundary = pdict.get('boundary')
+    if isinstance(boundary, str):
+        pdict['boundary'] = boundary.encode()
+    pdict['CONTENT-LENGTH'] = int(self.headers.get('Content-Length', '0'))
+
+    form = cgi.FieldStorage(fp=self.rfile, headers=self.headers,
+                            environ={'REQUEST_METHOD': 'POST'},
+                            keep_blank_values=True)
+
+    if 'file' not in form:
+        return (False, "No file field in form")
+
+    fileitem = form['file']
+    if not getattr(fileitem, 'filename', ''):
+        return (False, "No file selected")
+
+    # Normalise filename and target directory
+    fn = os.path.basename(fileitem.filename)
+    target_dir = self.translate_path(self.path)
+    if not os.path.isdir(target_dir):
+        target_dir = os.path.dirname(target_dir)  # if posting while viewing a file
+
+    target_path = os.path.join(target_dir, fn)
+
+    try:
+        with open(target_path, 'wb') as out:
+            shutil.copyfileobj(fileitem.file, out)
+        return (True, f'The file "{fn}" was uploaded successfully')
+    except Exception as e:
+        return (False, f'Failed to save file: {e}')
+
+def send_head(self):
+    """Serve a file or a directory listing."""
+    path = self.translate_path(self.path)
+    if os.path.isdir(path):
+        # If index.* exists, serve it; otherwise list directory
+        for index in ("index.html", "index.htm"):
+            index_path = os.path.join(path, index)
+            if os.path.exists(index_path):
+                path = index_path
+                break
+        else:
+            return self.list_directory(path)
+
+    # If we’re here, path should be a file
+    ctype = self.guess_type(path)
+    try:
+        f = open(path, 'rb')
+    except OSError:
+        self.send_error(404, "File not found")
+        return None
+
+    self.send_response(200)
+    self.send_header("Content-type", ctype)
+    fs = os.fstat(f.fileno())
+    self.send_header("Content-Length", str(fs.st_size))
+    self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
+    self.end_headers()
+    return f
 
     def list_directory(self, path):
         """Helper to produce a directory listing (absent index.html)."""
@@ -201,23 +220,22 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         return f
         
-    def translate_path(self, path):
-        """Translate a /-separated PATH to the local filename syntax. 
-        Handles translating the path based on the root directory specified in args.directory.
-        """
-        # Remove query string
-        path = path.split('?', 1)[0]
-        # Unquote the path
-        path = urllib.parse.unquote(path)
-        # Normalize the path
-        path = posixpath.normpath(path)
-        words = path.split('/')
-        words = filter(None, words)
-        # Set the base path to be the root directory (args.directory)
-        path = args.directory
-        for word in words:
-            path = os.path.join(path, word)
-        return path
+def translate_path(self, path):
+    """Map URL to filesystem under the handler's base directory."""
+    # strip query/fragment
+    path = path.split('?', 1)[0].split('#', 1)[0]
+    path = urllib.parse.unquote(path)
+    path = posixpath.normpath(path)
+    parts = [p for p in path.split('/') if p]
+
+    base_dir = getattr(self, 'directory', os.getcwd())
+    fs_path = base_dir
+    for part in parts:
+        # prevent path traversal
+        if part in (os.curdir, os.pardir):
+            continue
+        fs_path = os.path.join(fs_path, part)
+    return fs_path
 
     def guess_type(self, path):
         """Guess the type of a file based on its filename."""
@@ -276,3 +294,4 @@ if __name__ == '__main__':
   directory = args.directory
 
   run(port=args.port, directory=args.directory)
+
